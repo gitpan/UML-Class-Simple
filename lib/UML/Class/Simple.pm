@@ -8,13 +8,14 @@ use Class::Inspector;
 use IPC::Run3;
 use Template;
 use Carp qw(carp);
+use File::Spec;
 use List::MoreUtils 'any';
 
 require Exporter;
 our @ISA = qw(Exporter);
 our @EXPORT = qw(classes_from_runtime classes_from_files);
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 my $tt = Template->new;
 my $dot_template;
@@ -42,14 +43,17 @@ sub _runtime_packages {
         _runtime_packages($subpkg_name, $cache);
         $cache->{$subpkg_name} = 1;
     }
-    wantarray ? keys %$cache : $cache;
+    keys %$cache;
 }
 
 sub classes_from_files ($@) {
     require PPI;
     my ($list, $pattern) = @_;
     my @classes;
+    my $cache = {};
     for my $file (@$list) {
+        my @dir = _gen_paths($file, $cache);
+        push @INC, @dir;
         my $doc = PPI::Document->new( $file );
         if (!$doc) {
             carp "warning: Can't parse $file: ", PPI->errstr;
@@ -58,17 +62,34 @@ sub classes_from_files ($@) {
         my $res = $doc->find('PPI::Statement::Package');
         next if !$res;
         push @classes, map { $_->namespace } @$res;
+        require $file;
     }
+    #@classes = sort @classes;
     wantarray ? @classes : \@classes;
+}
+
+sub _gen_paths {
+    my ($file, $cache) = @_;
+    $file =~ s{\\+}{/}g;
+    my $dir;
+    while ($file =~ m{(?x) \G .+? /+ }gc) {
+        $dir .= $&;
+        next if $cache->{$dir};
+        $cache->{$dir} = 1;
+        #warn "~~~ $dir";
+        push @INC, $dir;
+    }
 }
 
 sub new ($$) {
     my $class = ref $_[0] ? ref shift : shift;
     my $rclasses = shift;
-    bless {
+    my $self = bless {
         class_names => $rclasses,
         node_color  => '#f1e1f4',
     }, $class;
+    $self->_build_dom;
+    $self;
 }
 
 sub size ($$$) {
@@ -120,6 +141,13 @@ sub as_gif ($@) {
 sub _as_image {
     my ($self, $type, $fname) = @_;
     my $dot = $self->as_dot;
+    #if ($fname eq 'fast00.png') {
+        #warn "==== $fname\n";
+        #warn $dot;
+        #use YAML::Syck;
+        #$self->_build_dom(1);
+        #warn Dump($self->as_dom);
+    #}
     my @cmd = ('dot', '-T', $type);
     if ($fname) {
         push @cmd, '-o', $fname;
@@ -150,18 +178,21 @@ sub _build_dom {
     my ($self, $force) = @_;
     # avoid unnecessary evaluation:
     return if $self->{classes} && !$force || !$self->{class_names};
+    #warn "HERE";
     my @pkg = @{ $self->{class_names} };
     my @classes;
     $self->{classes} = \@classes;
     my $public_only = $self->{public_only};
     my %visited; # used to eliminate potential repetitions
     for my $pkg (@pkg) {
+        #warn $pkg;
         $pkg =~ s/::::/::/g;
         if ($visited{$pkg}) { next; }
         $visited{$pkg} = 1;
 
         if (!Class::Inspector->loaded($pkg)) {
             my $pmfile = Class::Inspector->filename($pkg);
+            #warn $pmfile;
             my $done = 1;
             if ($pmfile) {
                 eval { require $pmfile };
@@ -198,6 +229,7 @@ sub _build_dom {
             }
         }
     }
+    #warn "@classes";
 }
 
 sub as_dot ($@) {
@@ -317,13 +349,13 @@ UML::Class::Simple - Render simple UML class diagrams, often by loading the code
 
 =head1 VERSION
 
-This document describes C<UML::Class::Simple> 0.01 released by Oct 30, 2006.
+This document describes C<UML::Class::Simple> 0.02 released by Oct 31, 2006.
 
 =head1 SYNOPSIS
 
     use UML::Class::Simple;
 
-    # produce a class diagram for fglock's Pugs::Compiler::Perl6
+    # produce a class diagram for Alias's PPI
     # which has already installed to your perl:
 
     @classes = classes_from_runtime("PPI", qr/^PPI::/);
@@ -366,9 +398,7 @@ jobs for them! :)
 You know, I was really impressed by the outputs of L<UML::Sequence>, so I 
 decided to find something to (automatically) get pretty class diagrams
 too. The images from L<Autodia>'s Graphviz backend didn't quite fit my needs
-when I was making some slides for my representations, so I started another 
-competing project after getting some guide from C<#perl> on C<irc.perl.org>.
-;-)
+when I was making some slides for my presentations.
 
 I think most of the time you just want to use the command-line utility L<umlclass.pl>
 offered by this module (just like me). See the documentation of L<umlclass.pl> for
@@ -380,33 +410,39 @@ details.
 
 =item PPI
 
+L<http://perlcabal.org/agent/images/ppi_small.png>
+
 =begin html
 
-&nbsp; &nbsp; <img src="samples/ppi_small.png" />
+<img src="http://perlcabal.org/agent/images/ppi_small.png">
 
 =end html
 
-(See samples/ppi_small.png in the distribution.)
+(See also F<samples/ppi_small.png> in the distribution.)
 
 =item Moose
 
+L<http://perlcabal.org/agent/images/moose_small.png>
+
 =begin html
 
-&nbsp; &nbsp; <img src="samples/moose_small.png" />
+<img src="http://perlcabal.org/agent/images/moose_small.png">
 
 =end html
 
-(See samples/moose_small.png in the distribution.)
+(See also F<samples/moose_small.png> in the distribution.)
 
 =item FAST
 
+L<http://perlcabal.org/agent/images/fast.png>
+
 =begin html
 
-&nbsp; &nbsp; <img src="samples/fast.png" />
+<img src="http://perlcabal.org/agent/images/fast.png">
 
 =end html
 
-(See samples/fast.png in the distribution.)
+(See also F<samples/fast.png> in the distribution.)
 
 =back
 
@@ -417,21 +453,21 @@ details.
 =item classes_from_runtime($module_to_load, $regex)
 
 Returns a list of class (or package) names by inspecting the perl runtime environment.
-$module_to_load is the I<main> module name to load while $regex is
+C<$module_to_load> is the I<main> module name to load while C<$regex> is
 a perl regex used to filter out interesting package names.
 
-The $regex argument can be omitted.
+The second argument can be omitted.
 
 =item classes_from_files(\@pmfiles, $regex)
 
 Returns a list of class (or package) names by scanning through the perl source files
-given in the first argument. $regex is used to filter out interesting package names.
+given in the first argument. C<$regex> is used to filter out interesting package names.
 
-The $regex argument can be omitted.
+The second argument can be omitted.
 
 =back
 
-These subroutines are not imported by default.
+These subroutines are imported by default.
 
 =head1 METHODS
 
@@ -439,22 +475,22 @@ These subroutines are not imported by default.
 
 =item C<< $obj->new( [@class_names] ) >>
 
-Creates a new UML::Class::Simple instance with the specified class name list.
+Create a new C<UML::Class::Simple> instance with the specified class name list.
 This list can either be constructed manually or by the utility functions
 C<classes_from_runtime> and C<classes_from_files>.
 
 =item C<< $obj->as_png($filename?) >>
 
-Generates PNG image file when C<$filename> is given. It returns
+Generate PNG image file when C<$filename> is given. It returns
 binary data when C<$filename> is not given.
 
 =item C<< $obj->as_gif($filename?) >>
 
-Similar to C<<as_png>>, bug generate a GIF-format image.
+Similar to C<as_png>, bug generate a GIF-format image.
 
 =item C<< $obj->as_dom() >>
 
-Returns the internal DOM tree used to generate dot and png. The tree's structure
+Return the internal DOM tree used to generate dot and png. The tree's structure
 looks like this:
 
   {
@@ -504,15 +540,15 @@ the C<set_dom> method.
 =item C<< $obj->set_dom($dom) >>
 
 Set the internal DOM structure to C<$obj>. This will be used to
-generate the dot source and thus the PNG image.
+generate the dot source and thus the PNG/GIF images.
 
 =item C<< $obj->as_dot() >>
 
-Returns the Graphviz dot source code generated by C<$obj>.
+Return the Graphviz dot source code generated by C<$obj>.
 
 =item C<< $obj->set_dot($dot) >>
 
-Sets the dot source code used by C<$obj>.
+Set the dot source code used by C<$obj>.
 
 =back
 
@@ -524,30 +560,30 @@ Sets the dot source code used by C<$obj>.
 
 =item C<< ($width, $height) = $obj->size >>
 
-Sets/gets the size of the output images, in inches.
+Set/get the size of the output images, in inches.
 
 =item C<< $obj->public_only($bool) >>
 
 =item C<< $bool = $obj->public_only >>
 
-when the C<public_only> property is set to true, only public methods or properties
+When the C<public_only> property is set to true, only public methods or properties
 are shown. It defaults to false.
 
 =item C<< $obj->node_color($color) >>
 
 =item C<< $color = $obj->node_color >>
 
-Sets/gets the background color for the class nodes. It defaults to C<'#f1e1f4'>.
+Set/get the background color for the class nodes. It defaults to C<'#f1e1f4'>.
 
 =back
 
 =head1 INSTALLATION
 
-Please download and intall the latest Graphviz binary from its home:
+Please download and intall a recent Graphviz release from its home:
 
 L<http://www.graphviz.org/>
 
-UML::Class::Simple requires the HTML label feature which is only
+C<UML::Class::Simple> requires the HTML label feature which is only
 available on versions of Graphviz that are newer than mid-November 2003.
 In particular, it is not part of release 1.10.
 
@@ -572,12 +608,13 @@ Note that it's recommended to use the C<cpan> utility to install CPAN modules.
 =item *
 
 It's pretty hard to distinguish perl methods from properties (actually they're both
-subs in perl). If you have any good ideas, please drop me a line.
+implemented by subs in perl). If you have any good thoughts on this issue,
+please drop me a line.
 
 =item *
 
 Only the inheritance relationships are shown in the images. I believe other subtle 
-relations can only mess up the Graphviz layouter. Hence the "::Simple" suffix in
+relations may mess up the Graphviz layouter. Hence the "::Simple" suffix in
 this module name.
 
 =item *
@@ -586,21 +623,28 @@ Unlike L<Autodia>, at this moment only Graphviz backend is provided.
 
 =item *
 
-There's no way to recognize C<real> perl classes automatically. After all, Perl 5's 
+There's no way to recognize I<real> perl classes automatically. After all, Perl 5's 
 classes are implemented by packages. I think Perl 6 will make my life much easier.
 
 =item *
 
 To prevent potential naming confusion. I'm using Perl's C<::> namespace separator
-in the class diagrams instead of dot (C<.>) in the standard UML syntax. One can argue
+in the class diagrams instead of dot (C<.>) chosen by the UML standard. One can argue
 that following UML standards are more important since people in the same team may
-use different programming languages. But sorry, it's not the case for me. ;-)
+use different programming languages. But I think it's not the case for most people
+(including me). ;-)
 
 =back
 
 =head1 TODO
 
 =over
+
+=item *
+
+Suppress the "Subroutine XXX redefined at ..." warnings while loading user's
+.pm files. Not sure how to do that. If you have a solution, please contact the
+author ASAP.
 
 =item *
 
@@ -612,32 +656,31 @@ Add support for more image formats, such as as_ps, as_jpg, and etc.
 
 =item *
 
-Provide a DOM interface for the class hierarchy so that the user can control what's
-in there and what not.
+Plot class relationships other than inheritance on the user's request.
 
 =item *
 
 Provide backends other than Graphviz.
 
-=item *
-
-Plot class relationships other than inheritance on the user's request.
-
 =back
 
-Please send me your wish list via emails or preferably the CPAN RT site. I'll add
+Please send me your wish list by emails or preferably via the CPAN RT site. I'll add
 them here if I'm also interested in your crazy ideas. ;-)
 
 =head1 BUGS
 
 There must be some serious bugs lurking somewhere. so if you found one, please report
-it to L<http://rt.cpan.org>.
+it to L<http://rt.cpan.org> or contact the author directly.
 
 =head1 ACKNOWLEDGEMENT
 
-I must thank Adam Kennedy (Alias) for writing the excellent PPI module and
-L<Class::Inspector>. pm2png uses the former to extract package names from user's .pm files
-while rt2png uses the latter to retrieve the function list of a specific package.
+I must thank Adam Kennedy (Alias) for writing the excellent L<PPI> and
+L<Class::Inspector> modules. L<umlclass.pl> uses the former to extract package names 
+from user's .pm files or the latter to retrieve the function list of a 
+specific package.
+
+I'm also grateful to Christopher Malon since he (unintentionally) motivated me to
+turn the original hack into this CPAN module. ;-)
 
 =head1 AUTHOR
 

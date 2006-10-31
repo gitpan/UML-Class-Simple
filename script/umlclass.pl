@@ -154,13 +154,13 @@ __END__
 
 =head1 NAME
 
-umlclass.pl - utility to generate UML class diagrams from source or runtime
+umlclass.pl - utility to generate UML class diagrams from Perl source or runtime
 
 =head1 SYNOPSIS
 
 =head1 DESCRIPTION
 
-This is a simple commandline frontend for the L<UML::Class::Simple> module.
+This is a simple command-line frontend for the L<UML::Class::Simple> module.
 
 I'll illustrate the usage of this tool via some real-world examples.
 
@@ -179,21 +179,23 @@ The graphical output is given below:
 
 =begin html
 
-&nbsp; &nbsp; <img src="samples/moose_small.png" alt="samples/moose_small.png"/>
+<img src="http://perlcabal.org/agent/images/moose_small.png">
 
 =end html
 
-(See also L<http://perlcabal.org/agent/images/ppi_small.png>.)
+(See also L<http://perlcabal.org/agent/images/moose_small.png>.)
 
 Yes, the image above looks very fuzzy since the whole stuff is huge. If you strip
 the -s option, then the resulting image will enlarge automatically:
 
   $ umlclass.pl -M Moose -o samples/moose_big.png -p "^(Class::MOP|Moose::)"
 
-Since the image obtained is really really large, I won't show it here.
+The image obtained is really really large, I won't show it here, but you
+can browse it in your favorite picture browser from
+L<http://perlcabal.org/agent/images/moose_big.png>.
 
-Before trying out these commands, please make sure that you have L<Moose>
-already installed. (It's also on CPAN, btw.)
+Before trying out these commands yourself, please make sure that you have 
+L<Moose> already installed. (It's also on CPAN, btw.)
 
 =head2 Draw Alias's PPI
 
@@ -201,7 +203,7 @@ already installed. (It's also on CPAN, btw.)
 
 =begin html
 
-&nbsp; &nbsp; <img src="samples/ppi_small.png" alt="samples/ppi_small.png"/>
+<img src="http://perlcabal.org/agent/images/ppi_small.png">
 
 =end html
 
@@ -219,14 +221,13 @@ Or the full-size version:
 
 This is an example of drawing classes contained in Perl source files.
 
-L<PPI> is a prerequisite of this module. So if you have this module installed
-then you should also have L<PPI>. :)
+BTW, L<PPI> is a prerequisite of this module.
 
 =head2 Draw Modules of Your Own
 
 Suppose that you're a CPAN author too and want to produce a class diagram for I<all>
 the classes contained in your lib/ directory. The following command can do all the
-job for you:
+hard work for you:
 
     $ umlclass.pl -o mylib.png -r lib
 
@@ -238,7 +239,7 @@ or even specify a pattern (in perl regex) to filter out the packages you want to
 
     $ umlclass.pl -o a.png -p "^Foo::" lib/foo.pm
 
-Quite handy, isn't it?
+Quite handy, isn't it? ;-)
 
 =head1 OPTIONS
 
@@ -250,13 +251,13 @@ Show the help message.
 
 =item -M module
 
-Preload modules which may contain the classes you want to depict. For example,
+Preload the module which contains the classes you want to depict. For example,
 
     $ umlclass.pl -M PPI -o ppi.png -p "^PPI::"
 
 =item -o outfile
 
-Specify the output file name. Note that the file extension will be honoured.
+Specify the output file name. Note that the file extension will be honored.
 If you specify "C<-o foo.png>", a PNG image named F<foo.png> will be generated,
 and if you specify "C<-o foo.dot>", the dot source file named F<foo.dot> will
 be obtained. Likewise, "C<-o foo.yml>" will lead to a YAML file holding the whole
@@ -274,7 +275,7 @@ A typical usage is as follows:
     # now feed the updated foo.dot back
     $ umlclass.pl -o foo.png foo.dot
 
-You see, F<umlclass.pl> allows you to control the behaviors at serval different
+You see, F<umlclass.pl> allows you to control the behaviors at several different
 levels. I really like this freedom, since tools can't always do exactly what I want.
 
 =item -p regex
@@ -302,6 +303,10 @@ where the unit is inches instead of pixels.
 =head1 TODO
 
 =over
+
+=item *
+
+Add the C<-c color> option to control the node background color.
 
 =item *
 

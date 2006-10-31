@@ -9,11 +9,11 @@ use 5.006001;
 use strict;
 use warnings;
 
-use GraphViz;
+#use GraphViz;
 use FAST::Struct::Seq;
 use FAST::Struct::While;
 use FAST::Struct::If;
-use Clone;
+#use Clone;
 
 #use Data::Dumper::Simple;
 

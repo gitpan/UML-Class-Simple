@@ -8,7 +8,7 @@ package FAST::Element;
 use strict;
 use warnings;
 use base 'Clone';
-use GraphViz;
+#use GraphViz;
 use Carp 'confess';
 
 sub new {
