@@ -1,4 +1,4 @@
-abstract: Render simple UML class diagrams, often by loading the code.
+abstract: Render simple UML class diagrams, by loading the code
 author: Agent Zhang <agentzh@gmail.com>
 build_requires: 
   Test::More: 0.64
@@ -21,4 +21,4 @@ requires:
   Template: 2.14
   YAML::Syck: 0
   perl: 5.6.1
-version: 0.02
+version: 0.03

@@ -1,9 +1,9 @@
 NAME
-    UML::Class::Simple - Render simple UML class diagrams, often by loading
-    the code.
+    UML::Class::Simple - Render simple UML class diagrams, by loading the
+    code
 
 VERSION
-    This document describes "UML::Class::Simple" 0.02 released by Oct 31,
+    This document describes "UML::Class::Simple" 0.03 released by Oct 31,
     2006.
 
 SYNOPSIS
@@ -51,9 +51,7 @@ DESCRIPTION
     You know, I was really impressed by the outputs of UML::Sequence, so I
     decided to find something to (automatically) get pretty class diagrams
     too. The images from Autodia's Graphviz backend didn't quite fit my
-    needs when I was making some slides for my representations, so I started
-    another competing project after getting some guide from "#perl" on
-    "irc.perl.org". ;-)
+    needs when I was making some slides for my presentations.
 
     I think most of the time you just want to use the command-line utility
     umlclass.pl offered by this module (just like me). See the documentation
@@ -123,8 +121,6 @@ METHODS
                                                'PPI::Structure::Condition',
                                                'PPI::Structure::Constructor',
                                                'PPI::Structure::ForLoop',
-                                               'PPI::Structure::List',
-                                               'PPI::Structure::Subscript',
                                                'PPI::Structure::Unknown'
                                              ],
                              'methods' => [
@@ -132,12 +128,6 @@ METHODS
                                             '_set_finish',
                                             'braces',
                                             'content',
-                                            'elements',
-                                            'finish',
-                                            'first_element',
-                                            'insert_after',
-                                            'insert_before',
-                                            'last_element',
                                             'new',
                                             'refaddr',
                                             'start',
@@ -226,6 +216,10 @@ LIMITATIONS
         most people (including me). ;-)
 
 TODO
+    *   Suppress the "Subroutine XXX redefined at ..." warnings while
+        loading user's .pm files. Not sure how to do that. If you have a
+        solution, please contact the author ASAP.
+
     *   Add more unit tests.
 
     *   Add support for more image formats, such as as_ps, as_jpg, and etc.
@@ -248,8 +242,8 @@ ACKNOWLEDGEMENT
     names from user's .pm files or the latter to retrieve the function list
     of a specific package.
 
-    I'm also grateful to Christopher Malon for motivating me to push a
-    temporary hack into a serious CPAN module. ;-)
+    I'm also grateful to Christopher Malon since he (unintentionally)
+    motivated me to turn the original hack into this CPAN module. ;-)
 
 AUTHOR
     Agent Zhang <agentzh@gmail.com>

@@ -8,7 +8,6 @@ package FAST::Node;
 use strict;
 use warnings;
 use base 'FAST::Element';
-use FAST;
 
 our $VERSION = '0.01';
 

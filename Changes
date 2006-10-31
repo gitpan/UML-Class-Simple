@@ -1,3 +1,8 @@
+= version 0.03
+* fixed the node_color bug.
+* eliminated all the subroutine redefinition warnings in the test suite.
+* added the `-c color` option to script/umlclass.pl
+
 = version 0.02
 * improved the POD a bit.
 * resolved the @INC problem.

@@ -6,7 +6,7 @@ no warnings;
 use YAML::Syck;
 use File::Slurp;
 use IPC::Run3;
-use Test::More tests => 4 * 11 + 1;
+use Test::More tests => 5 * 10 - 1;
 
 my $script = 'script/umlclass.pl';
 my @cmd = ($^X, '-Ilib', $script);
@@ -22,6 +22,18 @@ my ($stdout, $stderr);
     warn $stderr if $stderr;
     ok -f 'a.png', 'a.png exists';
     ok( (-s 'a.png' > 1000), 'a.png is nonempty' );
+}
+
+{
+    my $outfile = 'b.png';
+    unlink $outfile if -f $outfile;
+    ok run3( [@cmd, '-o', $outfile, qw(-c grey -p UML::Class)], \undef, \$stdout, \$stderr ),
+        "umlclass -o $outfile -c grey -p UML::Class";
+    is $stdout, "UML::Class\nUML::Class::Simple\n\n$outfile generated.\n",
+        "stdout ok - $outfile generated.";
+    warn $stderr if $stderr;
+    ok -f $outfile, "$outfile exists";
+    ok( (-s $outfile > 1000), "$outfile is nonempty" );
 }
 
 {

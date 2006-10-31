@@ -172,7 +172,6 @@ sub parse {
         }
     }
 
-
     $self->{edge_from} = \%edge_from;
     $self->{edge_to}   = \%edge_to;
     return 1;

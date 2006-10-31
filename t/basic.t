@@ -57,7 +57,8 @@ is_deeply $dom, {
     classes => [
         { name       => 'UML::Class::Simple',
           methods    => [qw(
-                _as_image _build_dom _gen_paths _runtime_packages
+                _as_image _build_dom _gen_paths _load_file
+                _runtime_packages
                 any as_dom as_dot as_gif as_png carp
                 classes_from_files
                 classes_from_runtime new node_color public_only
@@ -92,7 +93,7 @@ is_deeply $dom, {
 my $dot = $painter->as_dot;
 like $dot, qr/^digraph uml_class_diagram \{/, 'dot looks ok';
 like $dot, qr/size="5,3.6";/, 'size set ok';
-like $dot, qr/fillcolor="\#ffeeff"/, 'color set ok';
+like $dot, qr/="\#ffeeff"/, 'color set ok';
 
 my $dotfile = 't/me.dot';
 unlink $dotfile if -f $dotfile;

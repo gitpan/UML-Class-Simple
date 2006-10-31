@@ -3,6 +3,7 @@ package UML::Class::Simple;
 use 5.006001;
 use strict;
 use warnings;
+no warnings 'redefine';
 
 use Class::Inspector;
 use IPC::Run3;
@@ -15,7 +16,7 @@ require Exporter;
 our @ISA = qw(Exporter);
 our @EXPORT = qw(classes_from_runtime classes_from_files);
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 my $tt = Template->new;
 my $dot_template;
@@ -52,8 +53,7 @@ sub classes_from_files ($@) {
     my @classes;
     my $cache = {};
     for my $file (@$list) {
-        my @dir = _gen_paths($file, $cache);
-        push @INC, @dir;
+        _gen_paths($file, $cache);
         my $doc = PPI::Document->new( $file );
         if (!$doc) {
             carp "warning: Can't parse $file: ", PPI->errstr;
@@ -62,7 +62,7 @@ sub classes_from_files ($@) {
         my $res = $doc->find('PPI::Statement::Package');
         next if !$res;
         push @classes, map { $_->namespace } @$res;
-        require $file;
+        _load_file($file);
     }
     #@classes = sort @classes;
     wantarray ? @classes : \@classes;
@@ -76,14 +76,14 @@ sub _gen_paths {
         $dir .= $&;
         next if $cache->{$dir};
         $cache->{$dir} = 1;
-        #warn "~~~ $dir";
-        push @INC, $dir;
+        #warn "pushing ~~~ $dir\n";
+        unshift @INC, $dir;
     }
 }
 
 sub new ($$) {
     my $class = ref $_[0] ? ref shift : shift;
-    my $rclasses = shift;
+    my $rclasses = shift || [];
     my $self = bless {
         class_names => $rclasses,
         node_color  => '#f1e1f4',
@@ -191,20 +191,14 @@ sub _build_dom {
         $visited{$pkg} = 1;
 
         if (!Class::Inspector->loaded($pkg)) {
-            my $pmfile = Class::Inspector->filename($pkg);
+            #my $pmfile = Class::Inspector->filename($pkg);
             #warn $pmfile;
-            my $done = 1;
-            if ($pmfile) {
-                eval { require $pmfile };
-                if ($@) {
-                    #warn $@;
-                    $done = 0 ;
-                }
-            } else { $done = 0 }
-            if (!$done) {
-                #carp "warning: $pkg not loaded";
-                next;
-            }
+            #if ($pmfile) {
+            #    if (! _load_file($pmfile)) {
+            #        next;
+            #    }
+            #} else { next }
+            next;
         }
         push @classes, {
             name => $pkg, methods => [],
@@ -232,6 +226,27 @@ sub _build_dom {
     #warn "@classes";
 }
 
+sub _load_file {
+    my $file = shift;
+    my $path = File::Spec->rel2abs($file);
+    #warn "!!! >>>> $path\n";
+    if ( any { 
+                #warn "<<<<< ", File::Spec->rel2abs($_), "\n";
+                $path eq File::Spec->rel2abs($_);
+             } values %INC ) {
+        #carp "!!! Caught duplicate module files: $file ($path)";
+        return 1;
+    }
+    #my @a = values %INC;
+    #warn "\n@a\n";
+    #warn "!!! Loading $path...\n";
+    eval {
+        require $path;
+    };
+    carp $@ if $@;
+    !$@;
+}
+
 sub as_dot ($@) {
     my ($self, $fname) = @_;
     $self->_build_dom;
@@ -256,7 +271,7 @@ digraph uml_class_diagram {
   [%- IF width && height %]
     size="[% width %],[% height %]";
   [%- END %]
-    node [shape=record, fillcolor="[% node_color %]", style="filled"];
+    node [shape=record, style="filled"];
     edge [color=red, dir=none];
 
 [%- name2id = {} %]
@@ -266,7 +281,7 @@ digraph uml_class_diagram {
     [%- name2id.$name = id %]
     class_[% id %] [shape=plaintext, style="", label=<
 <table BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4">
-  <tr><td port="title" bgcolor="#f1e1f4">[% name %]</td></tr>
+  <tr><td port="title" bgcolor="[% node_color %]">[% name %]</td></tr>
   <tr>
     <td>
     <table border="0" cellborder="0" cellspacing="0" cellpadding="1">
@@ -345,11 +360,11 @@ __END__
 
 =head1 NAME
 
-UML::Class::Simple - Render simple UML class diagrams, often by loading the code.
+UML::Class::Simple - Render simple UML class diagrams, by loading the code
 
 =head1 VERSION
 
-This document describes C<UML::Class::Simple> 0.02 released by Oct 31, 2006.
+This document describes C<UML::Class::Simple> 0.03 released by Oct 31, 2006.
 
 =head1 SYNOPSIS
 
@@ -507,8 +522,6 @@ looks like this:
                                        'PPI::Structure::Condition',
                                        'PPI::Structure::Constructor',
                                        'PPI::Structure::ForLoop',
-                                       'PPI::Structure::List',
-                                       'PPI::Structure::Subscript',
                                        'PPI::Structure::Unknown'
                                      ],
                      'methods' => [
@@ -516,12 +529,6 @@ looks like this:
                                     '_set_finish',
                                     'braces',
                                     'content',
-                                    'elements',
-                                    'finish',
-                                    'first_element',
-                                    'insert_after',
-                                    'insert_before',
-                                    'last_element',
                                     'new',
                                     'refaddr',
                                     'start',

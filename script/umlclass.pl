@@ -12,7 +12,7 @@ use UML::Class::Simple;
 my $ext_regex = qr/(?:\.pl|\.pm)$/i;
 
 my %opts;
-getopts('hM:o:p:Prs:', \%opts) or help(1);
+getopts('c:hM:o:p:Prs:', \%opts) or help(1);
 
 help(0) if $opts{h};
 
@@ -26,6 +26,7 @@ if ($opts{s}) {
 
 my $recursive   = $opts{r};
 my $public_only = $opts{P};
+my $node_color  = $opts{c};
 #my $root_class  = $opts{R};
 
 my @infiles = sort map { -d $_ ? all_in($_) : $_ } map glob, @ARGV;
@@ -68,6 +69,7 @@ if (!$painter) {
 
 $painter->public_only($public_only) if $public_only;
 $painter->size($width, $height) if $width and $height;
+$painter->node_color($node_color) if $node_color;
 #$painter->root_at($root_class) if $root_class;
 
 my $outfile = $opts{o} || 'a.png';
@@ -91,7 +93,7 @@ else {
     die "error: unknown output file format: $ext\n";
 }
 
-print "$outfile generated.\n";
+print "$outfile generated.\n" if $outfile;
 
 sub help {
     my $code = shift;
@@ -102,7 +104,8 @@ Usage: $0 [-M module] [-o outfile] [-p regex] [infile... indir...]
                  optional.
     indir...     Directory containing perl source files. They're
                  optional too.
-Options: 
+Options:
+    -c color     Set the node color. Defaults to "#f1e1f4".
     -h           Print this help.
     -M module    Preload the specified module to runtime.
     -o outfile   Specify the output file name. it can be one of the
@@ -154,7 +157,7 @@ __END__
 
 =head1 NAME
 
-umlclass.pl - utility to generate UML class diagrams from Perl source or runtime
+umlclass.pl - Utility to generate UML class diagrams from Perl source or runtime
 
 =head1 SYNOPSIS
 
@@ -245,19 +248,26 @@ Quite handy, isn't it? ;-)
 
 =over
 
+=item -c color
+
+Sets the node color. Defaults to C<#f1e1f4>.
+
+You can either specify RGB values like C<#rrggbb> in hex form, or
+color names like "C<grey>" and "C<red>".
+
 =item -h
 
-Show the help message.
+Shows the help message.
 
 =item -M module
 
-Preload the module which contains the classes you want to depict. For example,
+Preloads the module which contains the classes you want to depict. For example,
 
     $ umlclass.pl -M PPI -o ppi.png -p "^PPI::"
 
 =item -o outfile
 
-Specify the output file name. Note that the file extension will be honored.
+Specifies the output file name. Note that the file extension will be honored.
 If you specify "C<-o foo.png>", a PNG image named F<foo.png> will be generated,
 and if you specify "C<-o foo.dot>", the dot source file named F<foo.dot> will
 be obtained. Likewise, "C<-o foo.yml>" will lead to a YAML file holding the whole
@@ -280,19 +290,19 @@ levels. I really like this freedom, since tools can't always do exactly what I w
 
 =item -p regex
 
-Specify the pattern (perl regex) used to filter out the class names to be drawn.
+Specifies the pattern (perl regex) used to filter out the class names to be drawn.
 
 =item -P
 
-Show public methods only.
+Shows public methods only.
 
 =item -r
 
-Recursively process subdirectories of input directories.
+Processes subdirectories of input directories recursively.
 
 =item -s <w>x<h>
 
-Specify the width and height of the resulting image. For example:
+Specifies the width and height of the resulting image. For example:
 
     -s 3.6x7
 
@@ -303,10 +313,6 @@ where the unit is inches instead of pixels.
 =head1 TODO
 
 =over
-
-=item *
-
-Add the C<-c color> option to control the node background color.
 
 =item *
 
