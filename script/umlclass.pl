@@ -32,6 +32,11 @@ my $node_color  = $opts{c};
 my @infiles = sort map { -d $_ ? all_in($_) : $_ } map glob, @ARGV;
 
 my @plfiles = grep { !/(?:\.dot|\.yml)$/i } @infiles;
+for my $plfile (@plfiles) {
+    if (!-e $plfile) {
+        die "error: input file $plfile not found.\n";
+    }
+}
 
 my $painter;
 
@@ -97,10 +102,10 @@ print "$outfile generated.\n" if $outfile;
 
 sub help {
     my $code = shift;
-    warn <<'_EOC_';
+    warn <<"_EOC_";
 Usage: $0 [-M module] [-o outfile] [-p regex] [infile... indir...]
     infile...    Perl source files, .pm, .pl, .yml, or .dot file, or
-                 .yml file containing the class info DOM. They're
+                 .yml files containing the class info DOM. They're
                  optional.
     indir...     Directory containing perl source files. They're
                  optional too.
@@ -120,7 +125,7 @@ Options:
     -s <w>x<h>   Specify the width and height (in inches) for the
                  output images. For instance, 3.2x6.3 and 4x8.
 
-Report bugs or wishlist to Agent Zhang <agentzh@gmail.com>.
+Report bugs or wishlist to Agent Zhang <agentzh\@gmail.com>.
 _EOC_
     exit($code);
 }
@@ -160,6 +165,12 @@ __END__
 umlclass.pl - Utility to generate UML class diagrams from Perl source or runtime
 
 =head1 SYNOPSIS
+
+    $ umlclass.pl -M Foo -o foo.png -p "^Foo::"
+
+    $ umlclass.pl -o bar.gif -p "Bar::|Baz::" lib/Bar.pm lib/*/*.pm
+
+    $ umlclass.pl -o blah.png -p Blah -r ./blib
 
 =head1 DESCRIPTION
 
@@ -218,13 +229,13 @@ Or the full-size version:
 
 (See L<http://perlcabal.org/agent/images/ppi_big.png>.)
 
+BTW, L<PPI> is a prerequisite of this module.
+
 =head2 Draw FAST.pm from UML::Class::Simple's Test Suite
 
   $ umlclass.pl -M FAST -o samples/fast.png -s 5x10 -r t/FAST/lib
 
 This is an example of drawing classes contained in Perl source files.
-
-BTW, L<PPI> is a prerequisite of this module.
 
 =head2 Draw Modules of Your Own
 
@@ -243,6 +254,56 @@ or even specify a pattern (in perl regex) to filter out the packages you want to
     $ umlclass.pl -o a.png -p "^Foo::" lib/foo.pm
 
 Quite handy, isn't it? ;-)
+
+=head1 IMPORTANT ISSUES
+
+Never feed plain module names to F<umlclass.pl>, for intance,
+
+  $ umlclass.pl Scalar::Defer
+
+will lead you to the following error message:
+
+  error: input file Scalar::Defer not found.
+
+Use C<-M> and C<-p> options to achieve your goals:
+
+  $ umlclass.pl -M Scalar::Defer -p "Scalar::Defer"
+
+In this example, I must warn you that you may miss the
+packages which belong to Scalar::Defer but don't have "Scalar::Defer"
+in their names. I'm sorry for that. F<umlclass.pl> is not I<that>
+smart.
+
+The safest ways to do this are
+
+=over
+
+=item 1.
+
+Don't specify the C<-p regex> option and generate a large image which shows
+every classes including CORE modules, figure out the appropriate class
+name pattern yourself, and rerun C<umlclass.pl> with the right regex pattern.
+
+=item 2.
+
+Grab the Scalar::Defer's tarball, and do something like this:
+
+   $ umlclass.pl -r Scalar-Defer-0.07/lib
+
+=back
+
+It's worth mentioning that when .pl or .pm files are passing as the command line
+arguments, I<only> the classes I<defined> in these files will be drawn. This is
+a feature. :)
+
+For F<.pm> files on your disk, simply pass them as the command line
+arguments. For instance:
+
+   $ umlclass.pl -o bar.gif lib/Bar.pm lib/*/*.pm
+
+or tell F<umlclass.pl> to iterate through the directories for you:
+
+   $ umlclass.pl -o blah.png -r ./lib
 
 =head1 OPTIONS
 
@@ -287,6 +348,8 @@ A typical usage is as follows:
 
 You see, F<umlclass.pl> allows you to control the behaviors at several different
 levels. I really like this freedom, since tools can't always do exactly what I want.
+
+If no C<-o> option was specified, F<a.png> will be assumed.
 
 =item -p regex
 
