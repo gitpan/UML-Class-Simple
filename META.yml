@@ -3,7 +3,7 @@ author: Agent Zhang <agentzh@gmail.com>
 build_requires: 
   Test::More: 0.64
 distribution_type: module
-generated_by: Module::Install version 0.63
+generated_by: Module::Install version 0.64
 license: perl
 name: UML-Class-Simple
 no_index: 
@@ -21,4 +21,4 @@ requires:
   Template: 2.14
   YAML::Syck: 0
   perl: 5.6.1
-version: 0.06
+version: 0.07
