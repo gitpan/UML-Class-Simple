@@ -266,7 +266,7 @@ L<Moose> already installed. (It's also on CPAN, btw.)
 
 Or the full-size version:
 
-  $ umlclass -M PPI -o samples/ppi_big.png -p "^PPI::"
+  $ umlclass.pl -M PPI -o samples/ppi_big.png -p "^PPI::"
 
 (See L<http://perlcabal.org/agent/images/ppi_big.png>.)
 
@@ -300,7 +300,7 @@ Quite handy, isn't it? ;-)
 
 Never feed plain module names to F<umlclass.pl>, for intance,
 
-  $ umlclass.pl Scalar::Defer
+  $ umlclass.pl Scalar::Defer  # DO NOT DO THIS!
 
 will lead you to the following error message:
 

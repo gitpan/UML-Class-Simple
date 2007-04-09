@@ -25,4 +25,4 @@ requires:
   Template: 0
   YAML::Syck: 0
   perl: 5.004
-version: 0.08
+version: 0.09
