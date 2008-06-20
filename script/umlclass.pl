@@ -18,7 +18,7 @@ GetOptions(
     "help|h"        => \my $help,
     "M=s"           => \my @preload_modules,
     "out|o=s"       => \$outfile,
-    "public-only|P" => \my $public_only,
+    "P|public-only" => \my $public_only,
     "pattern|p=s"   => \my $pattern,
     "recursive|r"   => \my $recursive,
     "size|s=s"      => \my $size,
@@ -112,6 +112,9 @@ elsif ($ext eq 'yml') {
     my $dom = $painter->as_dom;
     DumpFile($outfile, $dom);
 }
+elsif ($ext eq 'xmi') {
+    $painter->as_xmi($outfile);
+}
 else {
     die "error: unknown output file format: $ext\n";
 }
@@ -149,11 +152,11 @@ Options:
 
     --out outfile
     -o outfile   Specify the output file name. it can be one of the
-                 following types: .png, .dot, and .yml. Defaults
+                 following types: .png, .dot, .xmi and .yml. Defaults
                  to a.png.
 
     --public-only
-    -P           Show public methods only.
+                 Show public methods only.
 
     --pattern regex
     -p regex     Specify the perl regex as the pattern used to
@@ -396,7 +399,9 @@ Multiple C<-M> options are accepted. For instance:
 Specifies the output file name. Note that the file extension will be honored.
 If you specify "C<-o foo.png>", a PNG image named F<foo.png> will be generated,
 and if you specify "C<-o foo.dot>", the dot source file named F<foo.dot> will
-be obtained. Likewise, "C<-o foo.yml>" will lead to a YAML file holding the whole
+be obtained.
+If you specify "C<-o foo.xmi>", the XMI model file will be generated.
+Likewise, "C<-o foo.yml>" will lead to a YAML file holding the whole
 internal DOM data.
 
 A typical usage is as follows:
@@ -459,9 +464,10 @@ ancestors and subclasses will be drawn. (This is suggested by Christopher Malon.
 
 =back
 
-=head1 AUTHOR
+=head1 AUTHORS
 
-Agent Zhang E<lt>agentzh@gmail.comE<gt>
+Agent Zhang E<lt>agentzh@gmail.comE<gt>,
+Maxim Zenin E<lt>max@foggy.ruE<gt>
 
 =head1 COPYRIGHT
 
