@@ -4,12 +4,15 @@ use strict;
 use warnings;
 no warnings 'redefine';
 
+our $VERSION = '0.11';
+
+use Carp qw(carp confess);
 use Class::Inspector;
-use IPC::Run3;
-use Template;
-use Carp qw(carp);
+use Devel::Peek ();
 use File::Spec;
+use IPC::Run3;
 use List::MoreUtils 'any';
+use Template;
 use XML::LibXML ();
 
 require Exporter;
@@ -18,8 +21,6 @@ our @EXPORT = qw(
     classes_from_runtime classes_from_files
     exclude_by_paths grep_by_paths
 );
-
-our $VERSION = '0.10';
 
 my $tt = Template->new;
 my $dot_template;
@@ -155,13 +156,15 @@ sub new {
         class_names => $rclasses,
         node_color  => '#f1e1f4',
     }, $class;
-	my $options = shift;
-	if (ref $options) {
-		if (defined $options->{xmi_model}) {
-			$self->_xmi_load_model($options->{xmi_model});
-		}
-	}
-    $self->_build_dom;
+    $self->{inherited_methods} = 1;
+    my $options = shift;
+    if (ref($options) eq 'HASH') {
+        $self->{inherited_methods} = $options->{inherited_methods};
+        if (defined $options->{xmi_model}) {
+            $self->_xmi_load_model($options->{xmi_model});
+        }
+    }
+    #$self->_build_dom;
     $self;
 }
 
@@ -191,14 +194,25 @@ sub node_color {
     }
 }
 
-sub public_only {
+sub _property {
     my $self = shift;
+    my $property_name = shift;
     if (@_) {
-        $self->{public_only} = shift;
+        $self->{$property_name} = shift;
         $self->_build_dom(1);
     } else {
-        $self->{public_only};
+        $self->{$property_name};
     }
+}
+
+sub public_only {
+    my $self = shift;
+    $self->_property('public_only', @_);
+}
+
+sub inherited_methods {
+    my $self = shift;
+    $self->_property('inherited_methods', @_);
 }
 
 sub as_png {
@@ -277,12 +291,22 @@ sub _build_dom {
             name => $pkg, methods => [],
             properties => [], subclasses => [],
         };
-        my $func = Class::Inspector->functions($pkg);
-        if ($func and @$func) {
-            if ($public_only) {
-                @$func = grep { /^[^_]/ } @$func;
+        # If you want to gather only the functions defined in
+        #  the current class only (w/o those inherited from ancestors),
+        #  set inherited_methods property to false (default value is true).
+        my $methods = Class::Inspector->methods($pkg, 'expanded');
+        if ($methods and ref($methods) eq 'ARRAY') {
+            foreach my $method (@$methods) {
+                next if $method->[1] ne $pkg;
+                if (! $self->{inherited_methods}) {
+                    my $source_name =  Devel::Peek::CvGV($method->[3]);
+                    $source_name =~ s/^\*//;
+                    next if $method->[0] ne $source_name;
+                }
+                $method = $method->[2];
+                next if $public_only && $method =~ /^_/o;
+                push @{$classes[-1]->{methods}}, $method;
             }
-            $classes[-1]->{methods} = $func;
         }
         my $subclasses = Class::Inspector->subclasses($pkg);
         if ($subclasses) {
@@ -420,9 +444,9 @@ sub _xmi_set_default_attribute {
 
 sub _xmi_load_model {
     my ($self, $fname) = @_;
-	$self->{_xmi}->{_document} = XML::LibXML->new()->parse_file($fname);
+    $self->{_xmi}->{_document} = XML::LibXML->new()->parse_file($fname);
 }
-	
+
 sub _xmi_init_xml {
     my ($self, $fname) = @_;
     unless (defined $self->{_xmi}->{_document}) {
@@ -460,11 +484,11 @@ sub as_xmi {
     $self->_xmi_set_id($_) foreach @{$self->{classes}};
     my $doc = $self->_xmi_init_xml($fname);
     $self->_xmi_write_class($_) foreach @{$self->{classes}};
-	if ($fname) {
-		$doc->toFile($fname, 2);
-	} else {
-		return $doc;
-	}
+    if ($fname) {
+        $doc->toFile($fname, 2);
+    } else {
+        return $doc;
+    }
 }
 
 sub as_dot {
@@ -584,7 +608,7 @@ UML::Class::Simple - Render simple UML class diagrams, by loading the code
 
 =head1 VERSION
 
-This document describes C<UML::Class::Simple> 0.10 released by June 20, 2008.
+This document describes C<UML::Class::Simple> 0.11 released by June 22, 2008.
 
 =head1 SYNOPSIS
 
@@ -610,6 +634,9 @@ This document describes C<UML::Class::Simple> 0.10 released by June 20, 2008.
 
     # only show public methods and properties
     $painter->public_only(1);
+
+    # hide all methods from parent classes
+    $painter->inherited_methods(0);
 
     $painter->as_png('my_module.png');
 
@@ -821,6 +848,14 @@ Set/get the size of the output images, in inches.
 When the C<public_only> property is set to true, only public methods or properties
 are shown. It defaults to false.
 
+=item C<< $obj->inherited_methods($bool) >>
+
+=item C<< $bool = $obj->inherited_methods >>
+
+When the C<inherited_methods> property is set to false, then all methods,
+inherited from parent classes, are not shown.
+It defaults to true.
+
 =item C<< $obj->node_color($color) >>
 
 =item C<< $color = $obj->node_color >>
@@ -872,7 +907,7 @@ this module name.
 
 =item *
 
-Unlike L<Autodia>, at this moment only Graphviz backend is provided.
+Unlike L<Autodia>, at this moment only Graphviz and XMI backends are provided.
 
 =item *
 
@@ -948,13 +983,13 @@ I have a dream to keep sending out commit bits like Audrey Tang. ;-)
 
 =head1 AUTHORS
 
-Agent Zhang E<lt>agentzh@gmail.comE<gt>,
+Agent Zhang E<lt>agentzh@yahoo.cn<gt>,
 Maxim Zenin E<lt>max@foggy.ruE<gt>
 
 =head1 COPYRIGHT
 
 Copyright (c) 2006, 2007, 2008 by Agent Zhang.
-XMI export by Maxim Zenin, 2007.
+Copyright (c) 2007, 2008 by Maxim Zenin.
 
 This library is free software; you can redistribute it and/or modify it under
 the same terms as perl itself, either Artistic and GPL.
