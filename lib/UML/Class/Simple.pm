@@ -4,7 +4,7 @@ use strict;
 use warnings;
 no warnings 'redefine';
 
-our $VERSION = '0.14';
+our $VERSION = '0.15';
 
 #use Smart::Comments;
 use Carp qw(carp confess);
@@ -195,6 +195,47 @@ sub node_color {
     }
 }
 
+sub dot_prog {
+    my $self = shift;
+    if (@_) {
+        my $cmd = shift;
+        can_run($cmd) or die "ERROR: The dot program ($cmd) cannot be found or be run.\n";
+        $self->{dot_prog} = $cmd;
+    } else {
+        $self->{dot_prog} || 'dot';
+    }
+}
+
+# copied from IPC::Cmd. Copyright by IPC::Cmd's author.
+sub can_run {
+    my $command = shift;
+
+    # a lot of VMS executables have a symbol defined
+    # check those first
+    if ( $^O eq 'VMS' ) {
+        require VMS::DCLsym;
+        my $syms = VMS::DCLsym->new;
+        return $command if scalar $syms->getsym( uc $command );
+    }
+
+    require Config;
+    require File::Spec;
+    require ExtUtils::MakeMaker;
+
+    if( File::Spec->file_name_is_absolute($command) ) {
+        return MM->maybe_command($command);
+
+    } else {
+        for my $dir (
+            (split /\Q$Config::Config{path_sep}\E/, $ENV{PATH}),
+            File::Spec->curdir
+        ) {
+            my $abs = File::Spec->catfile($dir, $command);
+            return $abs if $abs = MM->maybe_command($abs);
+        }
+    }
+}
+
 sub _property {
     my $self = shift;
     my $property_name = shift;
@@ -203,6 +244,7 @@ sub _property {
         $self->_build_dom(1);
     } else {
         $self->{$property_name};
+
     }
 }
 
@@ -236,7 +278,8 @@ sub _as_image {
         #$self->_build_dom(1);
         #warn Dump($self->as_dom);
     #}
-    my @cmd = ('dot', '-T', $type);
+    my @cmd = ($self->dot_prog(), '-T', $type);
+    #my @cmd = ('dot', '-T', $type);
     if ($fname) {
         push @cmd, '-o', $fname;
     }
@@ -292,28 +335,46 @@ sub _build_dom {
             name => $pkg, methods => [],
             properties => [], subclasses => [],
         };
+        my $from_class_accessor = $pkg->isa('Class::Accessor') || $pkg->isa('Class::Accessor::Fast');
+        #accessor_name_for
 
         # If you want to gather only the functions defined in
         #  the current class only (w/o those inherited from ancestors),
         #  set inherited_methods property to false (default value is true).
         my $methods = Class::Inspector->methods($pkg, 'expanded');
         if ($methods and ref($methods) eq 'ARRAY') {
-            my %functions = map { $_->[2] => 1 } @$methods; # create hash from array
-            ### %functions
-            my @accessors = grep { /^_.*_accessor$/ } keys %functions;
-            ### @accessors
-            foreach my $accessor (@accessors) {
-                if ($accessor =~ /^_(.*)_accessor$/ ) {
-                    my $property = $1;
-                    if (exists $functions{$property}) {
-                        delete $functions{$property};
-                        delete $functions{"_${property}_accessor"};
-                        push @{ $classes[-1]->{properties} }, $property;
+            if ($from_class_accessor) {
+                my %functions = map { $_->[2] => 1 } @$methods; # create hash from array
+                ### %functions
+                #my @accessors = map { /^_(.*)_accessor$/; $1 } keys %functions;
+                ### @accessors
+                my $use_best_practice = delete $functions{'accessor_name_for'} && delete $functions{'mutator_name_for'};
+                my %accessors;
+                foreach my $meth (keys %functions) {
+                    next unless $meth;
+                    if ($meth =~ /^_(.*)_accessor$/) {
+                        my $accessor = $1;
+                        if (exists $functions{$accessor}) {
+                            delete $functions{$accessor};
+                            delete $functions{"_${accessor}_accessor"};
+                            push @{ $classes[-1]->{properties} }, $accessor;
+                        }
+                        next;
+                    }
+                    if ($use_best_practice) {
+                        if ($meth =~ /^(?:get|set)_(.+)/) {
+                            my $accessor = $1;
+                            delete $functions{$meth};
+                            if (!$accessors{$accessor}) {
+                                push @{ $classes[-1]->{properties} }, $accessor;
+                                $accessors{$accessor} = 1;
+                            }
+                        }
                     }
                 }
+                @$methods = grep { exists $functions{$_->[2]} } @$methods;
             }
             @{ $classes[-1]->{properties} } = sort @{ $classes[-1]->{properties} };
-            @$methods = grep { exists $functions{$_->[2]} } @$methods;
 
             foreach my $method (@$methods) {
                 next if $method->[1] ne $pkg;
@@ -631,7 +692,7 @@ UML::Class::Simple - Render simple UML class diagrams, by loading the code
 
 =head1 VERSION
 
-This document describes C<UML::Class::Simple> 0.14 released by August 28, 2008.
+This document describes C<UML::Class::Simple> 0.15 released by August 30, 2008.
 
 =head1 SYNOPSIS
 
@@ -853,6 +914,17 @@ Set the dot source code used by C<$obj>.
 
 Generate XMI model file when C<$filename> is given. It returns
 XML::LibXML::Document object when C<$filename> is not given.
+
+=item C<< can_run($path) >>
+
+Copied from L<IPC::Cmd> to test if $path is a runnable program. This code
+is copyright by IPC::Cmd's author.
+
+=item C<< $prog = $obj->dot_prog() >>
+
+=item C<< $obj->dot_prog($prog) >>
+
+Get or set the dot program path.
 
 =back
 

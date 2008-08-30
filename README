@@ -3,7 +3,7 @@ NAME
     code
 
 VERSION
-    This document describes "UML::Class::Simple" 0.14 released by August 28,
+    This document describes "UML::Class::Simple" 0.15 released by August 30,
     2008.
 
 SYNOPSIS
@@ -181,6 +181,14 @@ METHODS
     "$obj->as_xmi($filename)"
         Generate XMI model file when $filename is given. It returns
         XML::LibXML::Document object when $filename is not given.
+
+    "can_run($path)"
+        Copied from IPC::Cmd to test if $path is a runnable program. This
+        code is copyright by IPC::Cmd's author.
+
+    "$prog = $obj->dot_prog()"
+    "$obj->dot_prog($prog)"
+        Get or set the dot program path.
 
 PROPERTIES
     "$obj->size($width, $height)"
