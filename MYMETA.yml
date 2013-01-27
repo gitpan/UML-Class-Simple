@@ -1,15 +1,14 @@
 ---
 abstract: 'Render simple UML class diagrams, by loading the code'
 author:
-  - "Yichun \"agentzh\" Zhang (章亦春) C<< <agentzh@gmail.com> >>, CloudFlare Inc."
+  - "Yichun \"agentzh\" Zhang (ç« äº¦æ¥) C<< <agentzh@gmail.com> >>, CloudFlare Inc."
 build_requires:
   ExtUtils::MakeMaker: 6.59
   Test::More: 0
 configure_requires:
-  ExtUtils::MakeMaker: 6.59
-distribution_type: module
-dynamic_config: 1
-generated_by: 'Module::Install version 1.06'
+  ExtUtils::MakeMaker: 0
+dynamic_config: 0
+generated_by: 'ExtUtils::MakeMaker version 6.6302, CPAN::Meta::Converter version 2.120630'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -17,8 +16,8 @@ meta-spec:
 name: UML-Class-Simple
 no_index:
   directory:
-    - inc
     - t
+    - inc
 requires:
   Carp: 0
   Class::Inspector: 1.16
@@ -31,7 +30,5 @@ requires:
   Template: 0
   XML::LibXML: 0
   YAML::Syck: 0
-  perl: 5.6.1
-resources:
-  license: http://dev.perl.org/licenses/
+  perl: 5.006001
 version: 0.19

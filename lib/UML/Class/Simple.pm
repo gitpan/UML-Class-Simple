@@ -1,10 +1,12 @@
+# vim:set ft=perl ts=4 sw=4 et fdm=marker:
+
 package UML::Class::Simple;
 
 use strict;
 use warnings;
 no warnings 'redefine';
 
-our $VERSION = '0.18';
+our $VERSION = '0.19';
 
 #use Smart::Comments;
 use Carp qw(carp confess);
@@ -156,6 +158,8 @@ sub new {
     my $self = bless {
         class_names => $rclasses,
         node_color  => '#f1e1f4',
+        display_inheritance => 1,
+        display_methods => 1,
     }, $class;
     $self->{inherited_methods} = 1;
     my $options = shift;
@@ -309,6 +313,21 @@ sub set_dom ($$) {
     1;
 }
 
+sub moose_roles ($) {
+    my $self = shift;
+    $self->{'moose_roles'} = shift;
+}
+
+sub display_methods ($) {
+    my $self = shift;
+    $self->{'display_methods'} = shift;
+}
+
+sub display_inheritance ($) {
+    my $self = shift;
+    $self->{'display_inheritance'} = shift;
+}
+
 sub _build_dom {
     my ($self, $force) = @_;
     # avoid unnecessary evaluation:
@@ -407,7 +426,6 @@ sub _build_dom {
 
 
 
-
         my $subclasses = Class::Inspector->subclasses($pkg);
         if ($subclasses) {
             no strict 'refs';
@@ -415,8 +433,21 @@ sub _build_dom {
                 #warn "!!!! ", join ' ', @{"${_}::ISA"};
                 any { $_ eq $pkg } @{"${_}::ISA"};
             } @$subclasses;
+
             if (@child) {
                 $classes[-1]->{subclasses} = \@child;
+            }
+        }
+
+        if (Class::Inspector->function_exists($pkg, 'meta')) {
+            # at least Class::MOP
+            my $meta = $pkg->meta();
+            if ($meta->can('consumers')) {
+                # Something like Moose::Meta::Role
+                my @consumers = $meta->consumers();
+                if (@consumers) {
+                    $classes[-1]->{'consumers'} =  [ @consumers ];
+                }
             }
         }
     }
@@ -646,6 +677,7 @@ digraph uml_class_diagram {
   </tr>
   <tr>
     <td port="methods" >
+    [%- IF display_methods %]
     <table border="0" cellborder="0" cellspacing="0" cellpadding="0">
       <tr>
     <td>[% IF class.methods.size > 0 %]<font color="red">
@@ -660,6 +692,7 @@ digraph uml_class_diagram {
     [%- END %]</td>
       </tr>
     </table>
+    [%- END %]
     </td>
   </tr>
 </table>>];
@@ -669,29 +702,54 @@ digraph uml_class_diagram {
 
 [%- first = 1 %]
 [%- id = 0 %]
-[%- FOREACH class = classes %]
-  [%- id = id + 1 %]
-  [%- super = class.name %]
-  [%- NEXT IF !class.subclasses.size -%]
+[%- IF display_inheritance %]
+  [%- FOREACH class = classes %]
+    [%- id = id + 1 %]
+    [%- super = class.name %]
+    [%- NEXT IF !class.subclasses.size -%]
 
-  [%- IF first -%]
+    [%- IF first -%]
      node [shape="triangle", fillcolor=yellow, height=0.3, width=0.3];
-     [%- first = 0 %]
-  [%- END -%]
+      [%- first = 0 %]
+    [%- END -%]
 
      angle_[% id %] [label=""];
 
-
-  [%- super_id = name2id.$super %]
+    [%- super_id = name2id.$super %]
      class_[% super_id %]:methods -> angle_[% id %]
-  [%- FOREACH child = class.subclasses %]
-    [%- child_id = name2id.$child %]
-    [%- IF !child_id %]
+
+    [%- FOREACH child = class.subclasses %]
+      [%- child_id = name2id.$child %]
+      [%- IF !child_id %]
      class_[% class_id %] [shape=record, label="[% child %]" fillcolor="#f1e1f4", style="filled"];
      angle_[% id %] -> class_[% class_id %]
         [%- class_id = class_id + 1 %]
       [%- ELSE %]
      angle_[% id %] -> class_[% child_id %]:title
+      [%- END %]
+    [%- END %]
+  [%- END %]
+[%- END %]
+
+[%- IF moose_roles %]
+[%- first = 1 %]
+     edge [color=blue, dir=none];
+  [%- FOREACH class = classes %]
+    [%- id = id + 1 %]
+    [%- NEXT IF !class.consumers.size -%]
+    [%- role = class.name %]
+    [%- role_id = name2id.$role %]
+    [%- IF first %]
+     node [shape="triangle", fillcolor=orange, height=0.3, width=0.3];
+      [%- first = 0 %]
+    [%- END %]
+
+     angle_[% id %] [label=""];
+     class_[% role_id %]:methods -> angle_[% id %]
+
+    [%- FOREACH consumer = class.consumers %]
+      [%- consumer_id = name2id.$consumer %]
+     angle_[% id %] -> class_[% consumer_id %]:title
     [%- END %]
   [%- END %]
 [%- END %]
@@ -702,13 +760,15 @@ _EOC_
 1;
 __END__
 
+=encoding utf-8
+
 =head1 NAME
 
 UML::Class::Simple - Render simple UML class diagrams, by loading the code
 
 =head1 VERSION
 
-This document describes C<UML::Class::Simple> 0.18 released by May 20, 2009.
+This document describes C<UML::Class::Simple> 0.19 released by 26 January 2013.
 
 =head1 SYNOPSIS
 
@@ -981,6 +1041,20 @@ It defaults to true.
 
 Set/get the background color for the class nodes. It defaults to C<'#f1e1f4'>.
 
+=item C<< $obj->moose_roles($bool) >>
+
+When this property is set to true values, then relationships between Moose::Role packages and their consumers
+will be drawn in the output. Default to false.
+
+=item C<< $obj->display_methods($bool) >>
+
+When this property is set to false, then class methods will not be shown in the output. Default to true.
+
+=item C<< $obj->display_inheritance($bool) >>
+
+When this property is set to false, then the class inheritance relationship
+will not be drawn in the output. Default to false.
+
 =back
 
 =head1 INSTALLATION
@@ -1088,10 +1162,10 @@ motivated me to turn the original hack into this CPAN module. ;-)
 
 =head1 SOURCE CONTROL
 
-You can always grab the latest version from the following Subversion
+You can always grab the latest version from the following GitHub
 repository:
 
-L<http://svn.berlios.de/svnroot/repos/umlclass/>
+L<https://github.com/agentzh/uml-class-simple-pm>
 
 It has anonymous access to all.
 
@@ -1100,13 +1174,14 @@ I have a dream to keep sending out commit bits like Audrey Tang. ;-)
 
 =head1 AUTHORS
 
-Agent Zhang C<< <agentzh@yahoo.cn> >>,
+Yichun "agentzh" Zhang (章亦春) C<< <agentzh@gmail.com> >>, CloudFlare Inc.
+
 Maxim Zenin C<< <max@foggy.ru> >>.
 
 =head1 COPYRIGHT
 
-Copyright (c) 2006, 2007, 2008 by Agent Zhang.
-Copyright (c) 2007, 2008 by Maxim Zenin.
+Copyright (c) 2006-2013 by Yichun Zhang (章亦春), CloudFlare Inc.
+Copyright (c) 2007-2013 by Maxim Zenin.
 
 This library is free software; you can redistribute it and/or modify it under
 the same terms as perl itself, either Artistic and GPL.
