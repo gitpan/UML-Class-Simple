@@ -6,7 +6,7 @@ use strict;
 use warnings;
 no warnings 'redefine';
 
-our $VERSION = '0.19';
+our $VERSION = '0.20';
 
 #use Smart::Comments;
 use Carp qw(carp confess);
@@ -768,7 +768,7 @@ UML::Class::Simple - Render simple UML class diagrams, by loading the code
 
 =head1 VERSION
 
-This document describes C<UML::Class::Simple> 0.19 released by 26 January 2013.
+This document describes C<UML::Class::Simple> 0.20 released by 7 December 2014.
 
 =head1 SYNOPSIS
 
@@ -835,11 +835,11 @@ documentation of L<umlclass.pl> for details.
 
 =item PPI
 
-L<http://perlcabal.org/agent/images/ppi_small.png>
+L<https://raw.githubusercontent.com/agentzh/uml-class-simple-pm/master/samples/ppi_small.png>
 
 =begin html
 
-<img src="http://perlcabal.org/agent/images/ppi_small.png">
+<img src="https://raw.githubusercontent.com/agentzh/uml-class-simple-pm/master/samples/ppi_small.png">
 
 =end html
 
@@ -847,11 +847,11 @@ L<http://perlcabal.org/agent/images/ppi_small.png>
 
 =item Moose
 
-L<http://perlcabal.org/agent/images/moose_small.png>
+L<https://raw.githubusercontent.com/agentzh/uml-class-simple-pm/master/samples/moose_small.png>
 
 =begin html
 
-<img src="http://perlcabal.org/agent/images/moose_small.png">
+<img src="https://raw.githubusercontent.com/agentzh/uml-class-simple-pm/master/samples/moose_small.png">
 
 =end html
 
@@ -859,11 +859,11 @@ L<http://perlcabal.org/agent/images/moose_small.png>
 
 =item FAST
 
-L<http://perlcabal.org/agent/images/fast.png>
+L<https://raw.githubusercontent.com/agentzh/uml-class-simple-pm/master/samples/fast.png>
 
 =begin html
 
-<img src="http://perlcabal.org/agent/images/fast.png">
+<img src="https://raw.githubusercontent.com/agentzh/uml-class-simple-pm/master/samples/fast.png">
 
 =end html
 
@@ -1180,8 +1180,8 @@ Maxim Zenin C<< <max@foggy.ru> >>.
 
 =head1 COPYRIGHT
 
-Copyright (c) 2006-2013 by Yichun Zhang (章亦春), CloudFlare Inc.
-Copyright (c) 2007-2013 by Maxim Zenin.
+Copyright (c) 2006-2014 by Yichun Zhang (章亦春), CloudFlare Inc.
+Copyright (c) 2007-2014 by Maxim Zenin.
 
 This library is free software; you can redistribute it and/or modify it under
 the same terms as perl itself, either Artistic and GPL.
